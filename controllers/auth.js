@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Auth = require("../Models/auth");
+const authMiddleware = require("../middleware/authMiddleware");
 
 dotenv.config();
 
@@ -116,6 +117,40 @@ router.post("/login", async (req, res) => {
                 name: user.name,
                 email: user.email,
             },
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+});
+
+router.post("/logout", authMiddleware, async (req, res) => {
+    try {
+        res.status(200).json({
+            success: true,
+            message: "Logout successful",
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+});
+
+router.get("/me", authMiddleware, async (req, res) => {
+    try {
+        res.status(200).json({
+            success: true,
+            user: req.user,
         });
 
     } catch (error) {
