@@ -3,6 +3,7 @@ const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const Auth = require("./controllers/auth");
 const app = express();
 
 dotenv.config();
@@ -23,6 +24,7 @@ const limiter = rateLimit({
 });
 
 //Routes
+app.use("/api/auth", Auth, limiter);
 
 //Mongoose Connection
 mongoose.connect(process.env.MONGO_URI, {})
