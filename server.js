@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const Auth = require("./controllers/auth");
+const chatHistory = require("./controllers/chatHistory");
 const app = express();
 
 dotenv.config();
@@ -28,6 +29,7 @@ const limiter = rateLimit({
 
 //Routes
 app.use("/api/auth", Auth, limiter);
+app.use("/api", chatHistory, limiter);
 
 //Mongoose Connection
 mongoose.connect(process.env.MONGO_URI, {})
