@@ -42,4 +42,69 @@ router.post("/chat-history", authMiddleware, async (req, res) => {
     }
 });
 
+router.get("/chat-history", authMiddleware, async (req, res) => {
+    try {
+        const history = await chatHistory.find({
+            email: req.user.email
+        }).sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            history
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+router.delete("/chat-history/:id", authMiddleware, async (req, res) => {
+    try {
+        const deletedChat = await chatHistory.findOneAndDelete({
+            _id: req.params.id,
+            email: req.user.email
+        });
+
+        if (!deletedChat) {
+            return res.status(404).json({
+                success: false,
+                message: "Chat history not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Chat history deleted successfully"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+router.delete("/chat-history", authMiddleware, async (req, res) => {
+    try {
+        await chatHistory.deleteMany({
+            email: req.user.email
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "All chat history deleted successfully"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;
