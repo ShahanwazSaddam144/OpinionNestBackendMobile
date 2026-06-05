@@ -3,19 +3,44 @@ const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+
 const Auth = require("./controllers/auth");
 const chatHistory = require("./controllers/chatHistory");
-const app = express();
 
 dotenv.config();
-app.use(cors());
 
-app.use(express.json());
+const app = express();
+
+/* =========================
+   GLOBAL ERROR HANDLERS
+========================= */
+process.on("uncaughtException", (err) => {
+  console.error("🔥 Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("🔥 Unhandled Rejection:", err);
+});
+
+/* =========================
+   BASIC CONFIG
+========================= */
+const PORT = process.env.PORT || 5000;
+
+/* =========================
+   MIDDLEWARE
+========================= */
+app.use(cors({
+  origin: "*", // tighten later in production
+  methods: ["GET", "POST", "PUT", "DELETE"],
+}));
+
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-const PORT = process.env.PORT;
-
-//RateLimit
+/* =========================
+   RATE LIMITER (GLOBAL SAFE)
+========================= */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -27,21 +52,53 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-//Routes
-app.use("/api/auth", Auth, limiter);
-app.use("/api", chatHistory, limiter);
+/* Apply limiter globally (BEST FOR VPS STABILITY) */
+app.use(limiter);
 
-//Mongoose Connection
-mongoose.connect(process.env.MONGO_URI, {})
-.then(()=>{console.log("MongoDB Connected ✅✅")})
-.catch(()=>{console.log("MongoDB cannot connected ❌❌")})
+/* =========================
+   ROUTES
+========================= */
+app.use("/api/auth", Auth);
+app.use("/api", chatHistory);
 
+/* =========================
+   HEALTH CHECK (IMPORTANT FOR VPS)
+========================= */
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Server is running ✅",
+  });
+});
 
-//Server Listen
-app.listen(PORT, (err)=>{
-    if(err){
-        console.log("Server Cannot Successfully ❌❌")
-    } else{
-        console.log("Server Connected Succussfully ✅✅");
-    }
+/* =========================
+   MONGODB CONNECTION (STABLE)
+========================= */
+mongoose
+  .connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+    maxPoolSize: 10,
+  })
+  .then(() => {
+    console.log("✅ MongoDB Connected");
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB Connection Error:", err);
+  });
+
+/* =========================
+   START SERVER
+========================= */
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+
+/* =========================
+   HANDLE SERVER CRASH SAFELY
+========================= */
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received. Shutting down gracefully...");
+  server.close(() => {
+    console.log("Process terminated");
+  });
 });
